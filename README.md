@@ -4,6 +4,8 @@ Touch enabled [jQuery](https://jquery.com/) plugin that lets you create a beauti
 
 **Notice:** The old Owl Carousel site (owlgraphic [dot] com) is no longer in use. Please delete all references to this in bookmarks and your own products' documentation as it's being used for malicious purposes.
 
+## Accessibility updates
+
 ## Quick start
 
 ### Install

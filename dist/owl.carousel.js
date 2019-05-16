@@ -504,7 +504,7 @@
 
 		this.$element
 			.removeClass(this.options.loadingClass)
-			.addClass(this.options.loadedClass);
+			.addClass(this.options.loadedClass).attr({"role": "region"});
 	};
 
 	/**
@@ -615,6 +615,10 @@
 			event.data = $('<' + this.settings.itemElement + '/>')
 				.addClass(this.options.itemClass).append(item)
 		}
+
+		if(!(event.data).children("a").length) {
+			event.data.attr("tabindex", "0");
+		} 
 
 		this.trigger('prepared', { content: event.data });
 
@@ -2650,6 +2654,8 @@
 		 */
 		this._paused = true;
 
+		this._templates = [];
+
 		/**
 		 * All event handlers.
 		 * @protected
@@ -2672,6 +2678,7 @@
 			'initialized.owl.carousel': $.proxy(function(e) {
 				if (e.namespace && this._core.settings.autoplay) {
 					this.play();
+					this.initialize();
 				}
 			}, this),
 			'play.owl.autoplay': $.proxy(function(e, t, s) {
@@ -2721,7 +2728,15 @@
 		autoplay: false,
 		autoplayTimeout: 5000,
 		autoplayHoverPause: false,
-		autoplaySpeed: false
+		autoplaySpeed: false,
+		autoplayClass: [
+			"fa fa-pause",
+			"fa fa-play"
+		],
+		autoplayText: [
+			"Pause Slideshow",
+			"Play Slideshow"
+		]
 	};
 
 	/**
@@ -2811,6 +2826,48 @@
 
 			window.clearTimeout(this._call);
 		}
+	};
+
+	/**
+	 * Add Pause Button when Autoplay is true
+	 * @public
+	 */
+	Autoplay.prototype.initialize = function() {
+
+		// create Pause btn
+		this.$pauseBtn = $('<button class="play-pause-btn">')
+			.append($('<span class="sr-only"></span>').html(this._core.settings.autoplayText[0]))
+			.append($('<i>', {
+				"class": this._core.settings.autoplayClass[0],
+				"aria-hidden": "true"
+				}))
+			.wrap( $('<div class="autoplay-action">'))
+			.on('click', $.proxy(function(e) {
+
+				var pauseBtn = $(".play-pause-btn i"),
+					srText = $(".play-pause-btn span.sr-only");
+				
+				pauseBtn.toggleClass("active");
+
+				if(pauseBtn.hasClass("active")) {
+
+					this.pause();
+
+					srText.html(this._core.settings.autoplayText[1]);
+					pauseBtn.removeClass(this._core.settings.autoplayClass[0]).addClass(this._core.settings.autoplayClass[1]);
+
+				} else {
+
+					this.play();
+
+					srText.html(this._core.settings.autoplayText[0]);
+					pauseBtn.removeClass(this._core.settings.autoplayClass[1]).addClass(this._core.settings.autoplayClass[0]);
+					
+				}
+			}, this));
+
+		// append Pause Button
+		this._core.$element.append(this.$pauseBtn.parent());	
 	};
 
 	/**
@@ -2963,8 +3020,8 @@
 	Navigation.Defaults = {
 		nav: false,
 		navText: [
-			'<span aria-label="' + 'Previous' + '">&#x2039;</span>',
-			'<span aria-label="' + 'Next' + '">&#x203a;</span>'
+			'<span aria-label="' + 'Previous' + '"><span aria-hidden="true">&#x2039;</span></span>',
+			'<span aria-label="' + 'Next' + '"><span aria-hidden="true">&#x203a;</span></span>'
 		],
 		navSpeed: false,
 		navElement: 'button type="button" role="presentation"',
@@ -2978,6 +3035,7 @@
 		dotClass: 'owl-dot',
 		dotsClass: 'owl-dots',
 		dots: true,
+		dotsIndex: 1,
 		dotsEach: false,
 		dotsData: false,
 		dotsSpeed: false,
@@ -2993,20 +3051,25 @@
 			settings = this._core.settings;
 
 		// create DOM structure for relative navigation
-		this._controls.$relative = (settings.navContainer ? $(settings.navContainer)
-			: $('<div>').addClass(settings.navContainerClass).appendTo(this.$element)).addClass('disabled');
+		this._controls.$relativeNext = (settings.navContainer ? $(settings.navContainer)
+			: $('<div>').addClass(settings.navContainerClass + ' ' + 'next').prependTo(this.$element)).addClass('disabled');
+
+		this._controls.$relativePrev = (settings.navContainer ? $(settings.navContainer)
+			: $('<div>').addClass(settings.navContainerClass + ' ' + 'previous').appendTo(this.$element)).addClass('disabled');
+
 
 		this._controls.$previous = $('<' + settings.navElement + '>')
 			.addClass(settings.navClass[0])
 			.html(settings.navText[0])
-			.prependTo(this._controls.$relative)
+			.appendTo(this._controls.$relativePrev)
 			.on('click', $.proxy(function(e) {
 				this.prev(settings.navSpeed);
 			}, this));
+
 		this._controls.$next = $('<' + settings.navElement + '>')
 			.addClass(settings.navClass[1])
 			.html(settings.navText[1])
-			.appendTo(this._controls.$relative)
+			.appendTo(this._controls.$relativeNext)
 			.on('click', $.proxy(function(e) {
 				this.next(settings.navSpeed);
 			}, this));
@@ -3015,8 +3078,9 @@
 		if (!settings.dotsData) {
 			this._templates = [ $('<button role="button">')
 				.addClass(settings.dotClass)
-				.append($('<span>'))
-				.prop('outerHTML') ];
+				.append($('<span aria-hidden="true">'))
+				.prop('outerHTML')
+				];
 		}
 
 		this._controls.$absolute = (settings.dotsContainer ? $(settings.dotsContainer)
@@ -3031,18 +3095,19 @@
 			this.to(index, settings.dotsSpeed);
 		}, this));
 
-		/*$el.on('focusin', function() {
-			$(document).off(".carousel");
 
-			$(document).on('keydown.carousel', function(e) {
-				if(e.keyCode == 37) {
-					$el.trigger('prev.owl')
-				}
-				if(e.keyCode == 39) {
-					$el.trigger('next.owl')
-				}
-			});
-		});*/
+		// $el.on('focusin', function() {
+		// 	$(document).off(".carousel");
+
+		// 	$(document).on('keydown.carousel', function(e) {
+		// 		if(e.keyCode == 37) {
+		// 			$el.trigger('prev.owl')
+		// 		}
+		// 		if(e.keyCode == 39) {
+		// 			$el.trigger('next.owl')
+		// 		}
+		// 	});
+		// });
 
 		// override public methods of the carousel
 		for (override in this._overrides) {
@@ -3124,7 +3189,8 @@
 			index = this._core.relative(this._core.current()),
 			loop = settings.loop || settings.rewind;
 
-		this._controls.$relative.toggleClass('disabled', !settings.nav || disabled);
+		this._controls.$relativePrev.toggleClass('disabled', !settings.nav || disabled);
+		this._controls.$relativeNext.toggleClass('disabled', !settings.nav || disabled);
 
 		if (settings.nav) {
 			this._controls.$previous.toggleClass('disabled', !loop && index <= this._core.minimum(true));
@@ -3144,8 +3210,16 @@
 				this._controls.$absolute.children().slice(difference).remove();
 			}
 
-			this._controls.$absolute.find('.active').removeClass('active');
-			this._controls.$absolute.children().eq($.inArray(this.current(), this._pages)).addClass('active');
+			//aria-label for Carousel Dots
+			this._controls.$absolute.children().each(function() {
+				var $this = $(this);
+
+				$this.attr('aria-label', 'Navigate to Slide ' + ($this.index() + 1 )+'');
+			});
+
+			this._controls.$absolute.find('.active').removeClass('active').removeAttr("aria-current");
+			this._controls.$absolute.children().eq($.inArray(this.current(), this._pages)).addClass('active').attr("aria-current", "true");
+
 		}
 	};
 
