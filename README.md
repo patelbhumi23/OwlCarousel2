@@ -15,7 +15,10 @@ Touch enabled [jQuery](https://jquery.com/) plugin that lets you create a beauti
   * Navigation dots should be each individually labeled. Can do this with screen reader only text or an aria-label.
   * Active and Inactive dots are links not marked up as such (Added "aria-current" to the active dot).
   * If using a font based icon for navigation dots or next/previous buttons, ensure the icons are wrapped in their own span and given aria-hidden="true".
-  * If the carousel is animated it must have a pause/stop button that is visible at all times, is reachable by keyboard and labelled properly for screen reader users. Example: <button><span class="sr-only">Pause slideshow</span><i class="fa fa-pause" aria-hidden="true"></i></button>
+  * If the carousel is animated it must have a pause/stop button that is visible at all times, is reachable by keyboard and labelled properly for screen reader users. Example: 
+  ```html
+  <button><span class="sr-only">Pause slideshow</span><i class="fa fa-pause" aria-hidden="true"></i></button>
+  ```
 
 ## Quick start
 
